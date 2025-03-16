@@ -36,40 +36,39 @@ import EssentialLink from 'components/EssentialLink.vue'
 const linksList = [
   {
     title: 'Bisección',
-    caption: 'Método 1',
     icon: 'fas fa-hand-scissors',
     link: 'biseccion'
   },
   {
+    title: 'Falsa Posición',
+    icon: 'fas fa-ruler',
+    link: 'falsa-posicion'
+  },
+  /* {
     title: 'Interpolación Cuadrática',
-    caption: 'Método 2',
     icon: 'fas fa-chart-line',
     link: 'interpolacion-cuadratica'
   },
   {
     title: 'Método de Newton',
-    caption: 'Método 3',
     icon: 'fas fa-bolt',
     link: 'metodo-newton'
   },
   {
     title: 'Lagrange',
-    caption: 'Método 4',
     icon: 'fas fa-bezier-curve',
     link: 'lagrange'
   },
   {
     title: 'Máxima Inclinación',
-    caption: 'Método 5',
     icon: 'fas fa-arrow-up',
     link: 'maxima-inclinacion'
   },
   {
     title: 'Búsqueda Aleatoria',
-    caption: 'Método 6',
     icon: 'fas fa-dice',
     link: 'busqueda-aleatoria'
-  }
+  } */
 ];
 
 

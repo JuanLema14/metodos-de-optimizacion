@@ -1,6 +1,11 @@
 <template>
   <q-page padding>
-    <q-card class="shadowBox" style="border-radius: 10px">
+    <q-card class="shadowBox q-ma-sm" style="border-radius: 10px">
+      <q-card-section>
+        <MathEditor v-model="expresionMatematica" />
+      </q-card-section>
+    </q-card>
+    <q-card class="shadowBox q-ma-sm q-mt-md" style="border-radius: 10px">
       <q-toolbar>
         <q-avatar square>
           <q-icon name="fas fa-bezier-curve" color="secondary"/>
@@ -17,4 +22,9 @@
 </template>
 
 <script setup>
+import { defineAsyncComponent, ref } from "vue";
+
+const expresionMatematica = ref('')
+
+const MathEditor = defineAsyncComponent(() => import('../components/gestion-calculadora/MathEditor.vue'));
 </script>

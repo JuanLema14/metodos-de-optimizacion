@@ -2,17 +2,17 @@
   <q-page padding>
     <q-card class="shadowBox q-ma-sm" style="border-radius: 10px">
       <q-card-section>
-        <MathEditor v-model="expresionMatematica" />
+        <MathEditor v-model="expresionMatematica" @input="findInitialInterval" />
       </q-card-section>
     </q-card>
 
     <q-card class="shadowBox q-ma-sm q-mt-md" style="border-radius: 10px">
       <q-toolbar>
         <q-avatar square>
-          <q-icon name="fas fa-hand-scissors" color="secondary" />
+          <q-icon name="fas fa-ruler" color="secondary" />
         </q-avatar>
         <q-toolbar-title>
-          <span class="text-weight-bolder text-secondary"> Método de Bisección </span>
+          <span class="text-weight-bolder text-secondary"> Método de Falsa Posición </span>
         </q-toolbar-title>
       </q-toolbar>
 
@@ -21,20 +21,13 @@
         <q-input v-model.number="xu" label="Valor de xu" type="number" outlined class="q-mb-md" />
         <q-input v-model.number="tolerance" label="Tolerancia" type="number" outlined class="q-mb-md" />
 
-        <q-btn label="Calcular" color="primary" @click="executeBisection" class="full-width" />
+        <q-btn label="Calcular" color="primary" @click="executeFalsePosition" class="full-width" />
       </q-card-section>
     </q-card>
 
     <q-card v-if="results.length" class="shadowBox q-ma-sm q-mt-md" style="border-radius: 10px">
       <q-card-section>
-        <q-table
-          :rows="results"
-          :columns="columns"
-          row-key="iteration"
-          bordered
-          hide-pagination
-          dense
-        />
+        <q-table :rows="results" :columns="columns" row-key="iteration" bordered dense hide-pagination />
       </q-card-section>
     </q-card>
 
@@ -47,7 +40,7 @@
 </template>
 
 <script setup>
-import { defineAsyncComponent, ref, computed, watch } from "vue";
+import { defineAsyncComponent, ref, computed } from "vue";
 import { evaluate } from "mathjs";
 
 const MathEditor = defineAsyncComponent(() => import("../components/gestion-calculadora/MathEditor.vue"));
@@ -63,51 +56,33 @@ const columns = [
   { name: "iteration", label: "Iteración", field: "iteration", align: "center" },
   { name: "xl", label: "xl", field: "xl", align: "center" },
   { name: "xu", label: "xu", field: "xu", align: "center" },
-  { name: "xm", label: "Xm", field: "xm", align: "center" },
-  { name: "fxm", label: "f(Xm)", field: "fxm", align: "center" },
+  { name: "xr", label: "Xr", field: "xr", align: "center" },
+  { name: "fxr", label: "f(Xr)", field: "fxr", align: "center" },
   { name: "error", label: "Error", field: "error", align: "center" },
 ];
 
 const f = (x) => {
-  if (!expresionMatematica.value || expresionMatematica.value.trim() === "") {
-    console.error("Error: La función está vacía.");
-    return NaN;
-  }
-
+  if (!expresionMatematica.value.trim()) return NaN;
   try {
     return evaluate(expresionMatematica.value.replace(/X/g, "x"), { x });
   } catch (error) {
-    console.error("Error al evaluar la función:", error);
     return NaN;
   }
 };
 
-const findInterval = () => {
-  let start = -50, end = 50, step = 0.5;
-  let prevX = start, prevY = f(prevX);
-
-  for (let x = start + step; x <= end; x += step) {
-    let y = f(x);
-    if (prevY * y < 0) {
-      xl.value = prevX;
-      xu.value = x;
+const findInitialInterval = () => {
+  for (let i = -10; i < 10; i++) {
+    if (f(i) * f(i + 1) < 0) {
+      xl.value = i;
+      xu.value = i + 1;
       return;
     }
-    prevX = x;
-    prevY = y;
   }
-
   xl.value = null;
   xu.value = null;
 };
 
-watch(expresionMatematica, () => {
-  if (expresionMatematica.value) {
-    findInterval();
-  }
-});
-
-const executeBisection = () => {
+const executeFalsePosition = () => {
   if (!expresionMatematica.value || xl.value === null || xu.value === null) {
     alert("Ingrese una función válida y asegúrese de que hay una raíz en el intervalo");
     return;
@@ -115,38 +90,34 @@ const executeBisection = () => {
 
   let x1 = xl.value;
   let x2 = xu.value;
-  let xm, fxm, error;
+  let xr, fxr, error;
   let iteration = 0;
   results.value = [];
 
   do {
-    xm = (x1 + x2) / 2;
-    fxm = f(xm);
-    error = Math.abs(x2 - x1);
+    xr = (x1 * f(x2) - x2 * f(x1)) / (f(x2) - f(x1));
+    fxr = f(xr);
+    error = Math.abs(xr - x1);
 
-    results.value.push({ iteration, xl: x1, xu: x2, xm, fxm, error });
+    results.value.push({ iteration, xl: x1, xu: x2, xr, fxr, error });
 
-    if (f(x1) * fxm < 0) {
-      x2 = xm;
+    if (f(x1) * fxr < 0) {
+      x2 = xr;
     } else {
-      x1 = xm;
+      x1 = xr;
     }
 
     iteration++;
   } while (error > tolerance.value && iteration < 100);
 };
 
-const graphData = computed(() => {
-  return [
-    {
-      x: results.value.map((row) => row.iteration),
-      y: results.value.map((row) => row.error),
-      mode: "lines+markers",
-      type: "scatter",
-      name: "Error Absoluto",
-      line: { shape: "spline", smoothing: 1.3 },
-      marker: { color: "red", size: 6 },
-    },
-  ];
-});
+const graphData = computed(() => [{
+  x: results.value.map((row) => row.iteration),
+  y: results.value.map((row) => row.error),
+  mode: "lines+markers",
+  type: "scatter",
+  name: "Error Absoluto",
+  line: { shape: "spline", smoothing: 1.3 },
+  marker: { color: "blue", size: 6 },
+}]);
 </script>
