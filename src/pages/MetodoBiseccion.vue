@@ -82,11 +82,11 @@ const f = (x) => {
   }
 };
 
-const findInterval = () => {
-  let start = -50, end = 50, step = 0.5;
+const findInterval = (range = 50, step = 0.5, maxIterations = 200) => {
+  let start = -range, end = range;
   let prevX = start, prevY = f(prevX);
 
-  for (let x = start + step; x <= end; x += step) {
+  for (let i = 0, x = start + step; x <= end && i < maxIterations; x += step, i++) {
     let y = f(x);
     if (prevY * y < 0) {
       xl.value = prevX;
@@ -99,7 +99,9 @@ const findInterval = () => {
 
   xl.value = null;
   xu.value = null;
+  console.warn("No se encontró un intervalo con cambio de signo en el rango dado.");
 };
+
 
 watch(expresionMatematica, () => {
   if (expresionMatematica.value) {
@@ -119,14 +121,21 @@ const executeBisection = () => {
   let iteration = 0;
   results.value = [];
 
+  if (f(x1) * f(x2) >= 0) {
+    alert("El intervalo seleccionado no encierra una raíz. Elija otro xl y xu.");
+    return;
+  }
+
   do {
     xm = (x1 + x2) / 2;
     fxm = f(xm);
-    error = Math.abs(x2 - x1);
+    error = Math.abs((x2 - x1) / xm);
 
     results.value.push({ iteration, xl: x1, xu: x2, xm, fxm, error });
 
-    if (f(x1) * fxm < 0) {
+    if (fxm === 0) {
+      break;
+    } else if (f(x1) * fxm < 0) {
       x2 = xm;
     } else {
       x1 = xm;
