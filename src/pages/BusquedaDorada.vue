@@ -52,7 +52,7 @@ const xu = ref(null);
 const tolerance = ref(0.0001);
 const results = ref([]);
 
-const phi = (1 + Math.sqrt(5)) / 2; // Razón áurea
+const phi = (1 + Math.sqrt(5)) / 2;
 
 const columns = [
   { name: "iteration", label: "Iteración", field: "iteration", align: "center" },
@@ -74,7 +74,6 @@ const f = (x) => {
   }
 };
 
-// Detectar límites automáticamente a partir de la función ingresada
 const autoDetectLimits = () => {
   if (!expresionMatematica.value.trim()) return;
 

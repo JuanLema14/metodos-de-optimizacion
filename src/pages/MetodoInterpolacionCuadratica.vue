@@ -143,7 +143,6 @@ const graphData = computed(() => {
 
   const f = (x) => evaluate(expresionMatematica.value.replace(/X/g, "x"), { x });
 
-  // Definir un rango de valores para graficar la función
   const xValues = [];
   const yValues = [];
   const xMin = Math.min(...iterations.value.map((it) => parseFloat(it.x0))) - 1;
@@ -154,7 +153,6 @@ const graphData = computed(() => {
     yValues.push(f(x));
   }
 
-  // Capturar la trayectoria de X3 en cada iteración
   const xTrajectory = iterations.value.map((it) => parseFloat(it.x3));
   const yTrajectory = xTrajectory.map((x) => f(x));
 
