@@ -9,7 +9,6 @@ const routes = [
       { path: 'busqueda-dorada', component: () => import('pages/BusquedaDorada.vue') },
       { path: 'interpolacion-cuadratica', component: () => import('pages/MetodoInterpolacionCuadratica.vue') },
       { path: 'metodo-newton', component: () => import('pages/MetodoNewton.vue') },
-      { path: 'metodo-newton-raphson', component: () => import('pages/MetodoNewtonRaphson.vue') },
       { path: 'lagrange', component: () => import('pages/MetodoLagrange.vue') },
       { path: 'maxima-inclinacion', component: () => import('pages/MetodoMaximaInclinacion.vue') },
       { path: 'busqueda-aleatoria', component: () => import('pages/MetodoBusquedaAleatoria.vue') }

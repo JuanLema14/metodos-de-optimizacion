@@ -55,11 +55,6 @@ const linksList = [
     link: 'interpolacion-cuadratica'
   },
   {
-    title: 'Método de Newton Raphson',
-    icon: 'fas fa-calculator',
-    link: 'metodo-newton-raphson'
-  },
-  {
     title: 'Método de Newton',
     icon: 'fas fa-bolt',
     link: 'metodo-newton'
