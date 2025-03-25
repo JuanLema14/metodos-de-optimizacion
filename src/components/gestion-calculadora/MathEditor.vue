@@ -34,7 +34,7 @@
 </template>
 
 <script setup>
-import { ref, defineEmits } from 'vue'
+import { ref } from 'vue'
 
 const mathExpression = ref('')
 const emit = defineEmits(['update:model-value'])
