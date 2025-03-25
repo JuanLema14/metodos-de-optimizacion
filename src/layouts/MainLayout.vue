@@ -44,17 +44,27 @@ const linksList = [
     icon: 'fas fa-ruler',
     link: 'falsa-posicion'
   },
-  /* {
+  {
+    title: 'Búsqueda Dorada',
+    icon: 'fas fa-search-dollar',
+    link: 'busqueda-dorada'
+  },
+  {
     title: 'Interpolación Cuadrática',
     icon: 'fas fa-chart-line',
     link: 'interpolacion-cuadratica'
+  },
+  {
+    title: 'Método de Newton Raphson',
+    icon: 'fas fa-calculator',
+    link: 'metodo-newton-raphson'
   },
   {
     title: 'Método de Newton',
     icon: 'fas fa-bolt',
     link: 'metodo-newton'
   },
-  {
+  /* {
     title: 'Lagrange',
     icon: 'fas fa-bezier-curve',
     link: 'lagrange'
