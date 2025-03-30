@@ -59,21 +59,11 @@ const linksList = [
     icon: 'fas fa-bolt',
     link: 'metodo-newton'
   },
-  /* {
-    title: 'Lagrange',
-    icon: 'fas fa-bezier-curve',
-    link: 'lagrange'
-  },
-  {
-    title: 'Máxima Inclinación',
-    icon: 'fas fa-arrow-up',
-    link: 'maxima-inclinacion'
-  },
   {
     title: 'Búsqueda Aleatoria',
     icon: 'fas fa-dice',
     link: 'busqueda-aleatoria'
-  } */
+  }
 ];
 
 

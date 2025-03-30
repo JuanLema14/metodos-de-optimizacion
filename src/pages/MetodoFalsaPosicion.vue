@@ -2,7 +2,7 @@
   <q-page padding>
     <q-card class="shadowBox q-ma-sm" style="border-radius: 10px">
       <q-card-section>
-        <MathEditor v-model="expresionMatematica" @input="findInitialInterval" />
+        <MathEditor v-model="expresionMatematica" @update:model-value="findInitialInterval" />
       </q-card-section>
     </q-card>
 
@@ -22,12 +22,13 @@
         <q-input v-model.number="tolerance" label="Tolerancia" type="number" outlined class="q-mb-md" />
 
         <q-btn label="Calcular" color="primary" @click="executeFalsePosition" class="full-width" />
+        <q-btn label="Exportar Resultados" color="secondary" @click="exportResults" class="full-width q-mt-md" />
       </q-card-section>
     </q-card>
 
     <q-card v-if="results.length" class="shadowBox q-ma-sm q-mt-md" style="border-radius: 10px">
       <q-card-section>
-        <q-table :rows="results" :columns="columns" row-key="iteration" bordered dense hide-pagination />
+        <q-table :rows="results" :columns="columns" row-key="iteration" bordered dense  />
       </q-card-section>
     </q-card>
 
@@ -42,6 +43,7 @@
 <script setup>
 import { defineAsyncComponent, ref, computed } from "vue";
 import { evaluate } from "mathjs";
+import { exportFile } from "quasar";
 
 const MathEditor = defineAsyncComponent(() => import("../components/gestion-calculadora/MathEditor.vue"));
 const PlotlyChart = defineAsyncComponent(() => import("../components/PlotlyChart.vue"));
@@ -120,4 +122,14 @@ const graphData = computed(() => [{
   line: { shape: "spline", smoothing: 1.3 },
   marker: { color: "blue", size: 6 },
 }]);
+
+const exportResults = () => {
+  const headers = ["Iteración", "xl", "xu", "Xr", "f(Xr)", "Error"];
+  const content = results.value.map(row =>
+    [row.iteration, row.xl, row.xu, row.xr, row.fxr, row.error].join(";")
+  ).join("\n");
+
+  const csv = `${headers.join(";")}\n${content}`;
+  exportFile("falsa_posicion_resultados.csv", csv, "text/csv");
+};
 </script>

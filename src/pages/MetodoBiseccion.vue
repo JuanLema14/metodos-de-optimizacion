@@ -22,6 +22,7 @@
         <q-input v-model.number="tolerance" label="Tolerancia" type="number" outlined class="q-mb-md" />
 
         <q-btn label="Calcular" color="primary" @click="executeBisection" class="full-width" />
+        <q-btn label="Exportar Resultados" color="secondary" @click="exportResults" class="full-width q-mt-md" />
       </q-card-section>
     </q-card>
 
@@ -32,7 +33,7 @@
           :columns="columns"
           row-key="iteration"
           bordered
-          hide-pagination
+
           dense
         />
       </q-card-section>
@@ -49,6 +50,7 @@
 <script setup>
 import { defineAsyncComponent, ref, computed, watch } from "vue";
 import { evaluate } from "mathjs";
+import { exportFile } from "quasar";
 
 const MathEditor = defineAsyncComponent(() => import("../components/gestion-calculadora/MathEditor.vue"));
 const PlotlyChart = defineAsyncComponent(() => import("../components/PlotlyChart.vue"));
@@ -158,4 +160,14 @@ const graphData = computed(() => {
     },
   ];
 });
+
+const exportResults = () => {
+  const headers = ["Iteración", "xl", "xu", "Xm", "f(Xm)", "Error"];
+  const content = results.value.map(row =>
+    [row.iteration, row.xl, row.xu, row.xm, row.fxm, row.error].join(";")
+  ).join("\n");
+
+  const csv = `${headers.join(";")}\n${content}`;
+  exportFile("biseccion_resultados.csv", csv, "text/csv");
+};
 </script>

@@ -20,14 +20,15 @@
         <q-input v-model.number="xl" label="Límite inferior (xl)" type="number" outlined class="q-mb-md" />
         <q-input v-model.number="xu" label="Límite superior (xu)" type="number" outlined class="q-mb-md" />
         <q-input v-model.number="tolerance" label="Tolerancia" type="number" outlined class="q-mb-md" />
-
+        <q-toggle v-model="isMinimization" label="Buscar mínimo" class="q-mb-md" />
         <q-btn label="Calcular" color="primary" @click="executeGoldenSearch" class="full-width" />
+        <q-btn label="Exportar Resultados" color="secondary" @click="exportResults" class="full-width q-mt-md" />
       </q-card-section>
     </q-card>
 
     <q-card v-if="results.length" class="shadowBox q-ma-sm q-mt-md" style="border-radius: 10px">
       <q-card-section>
-        <q-table :rows="results" :columns="columns" row-key="iteration" bordered hide-pagination dense />
+        <q-table :rows="results" :columns="columns" row-key="iteration" bordered dense />
       </q-card-section>
     </q-card>
 
@@ -42,17 +43,19 @@
 <script setup>
 import { defineAsyncComponent, ref, computed } from "vue";
 import { evaluate, derivative } from "mathjs";
+import { exportFile } from "quasar";
 
 const MathEditor = defineAsyncComponent(() => import("../components/gestion-calculadora/MathEditor.vue"));
 const PlotlyChart = defineAsyncComponent(() => import("../components/PlotlyChart.vue"));
 
-const expresionMatematica = ref("");
-const xl = ref(null);
-const xu = ref(null);
+const expresionMatematica = ref("2*sin(x)-(x^2/10)");
+const xl = ref(0.0);
+const xu = ref(4.0);
 const tolerance = ref(0.0001);
 const results = ref([]);
-
-const phi = (1 + Math.sqrt(5)) / 2;
+const isMinimization = ref(true);
+const goldenRatio = 0.618;
+const maxIterations = 100;
 
 const columns = [
   { name: "iteration", label: "Iteración", field: "iteration", align: "center" },
@@ -62,6 +65,8 @@ const columns = [
   { name: "x2", label: "x2", field: "x2", align: "center" },
   { name: "fx1", label: "f(x1)", field: "fx1", align: "center" },
   { name: "fx2", label: "f(x2)", field: "fx2", align: "center" },
+  { name: "error", label: "Error", field: "error", align: "center" },
+  { name: "evaluation", label: "Evaluación", field: "evaluation", align: "center" },
 ];
 
 const f = (x) => {
@@ -104,61 +109,6 @@ const autoDetectLimits = () => {
   }
 };
 
-const executeGoldenSearch = () => {
-  if (!expresionMatematica.value.trim() || xl.value === null || xu.value === null) {
-    alert("Ingrese una función válida y los valores del intervalo.");
-    return;
-  }
-
-  let xl_k = xl.value;
-  let xu_k = xu.value;
-  let x2_k = xu_k - (xu_k - xl_k) / phi;
-  let x1_k = xl_k + (xu_k - xl_k) / phi;
-  let f_x2 = f(x2_k);
-  let f_x1 = f(x1_k);
-  let iteration = 0;
-
-  results.value = [];
-
-  while (Math.abs(xu_k - xl_k) > tolerance.value) {
-    results.value.push({
-      iteration,
-      xl: xl_k,
-      xu: xu_k,
-      x1: x1_k,
-      x2: x2_k,
-      fx1: f_x1,
-      fx2: f_x2,
-    });
-
-    if (f_x2 < f_x1) {
-      xu_k = x1_k;
-      x1_k = x2_k;
-      f_x1 = f_x2;
-      x2_k = xu_k - (xu_k - xl_k) / phi;
-      f_x2 = f(x2_k);
-    } else {
-      xl_k = x2_k;
-      x2_k = x1_k;
-      f_x2 = f_x1;
-      x1_k = xl_k + (xu_k - xl_k) / phi;
-      f_x1 = f(x1_k);
-    }
-
-    iteration++;
-  }
-
-  results.value.push({
-    iteration,
-    xl: xl_k,
-    xu: xu_k,
-    x1: x1_k,
-    x2: x2_k,
-    fx1: f_x1,
-    fx2: f_x2,
-  });
-};
-
 const graphData = computed(() => {
   return [
     {
@@ -172,4 +122,91 @@ const graphData = computed(() => {
     },
   ];
 });
+
+const executeGoldenSearch = () => {
+  if (!expresionMatematica.value.trim() || xl.value === null || xu.value === null) {
+    alert("Ingrese una función válida y los valores del intervalo.");
+    return;
+  }
+
+  if (xl.value >= xu.value) {
+    alert("El límite inferior debe ser menor que el límite superior.");
+    return;
+  }
+
+  let xl_k = parseFloat(xl.value);
+  let xu_k = parseFloat(xu.value);
+  let d = goldenRatio * (xu_k - xl_k);
+  let x1_k = xl_k + d;
+  let x2_k = xu_k - d;
+  let f_x1 = f(x1_k);
+  let f_x2 = f(x2_k);
+  let iteration = 0;
+  let error = Math.abs(xu_k - xl_k);
+
+  if (isNaN(f_x1) || isNaN(f_x2)) {
+    alert("Error al evaluar la función en los puntos iniciales. Revise la función.");
+    return;
+  }
+
+  results.value = [];
+
+  while (error > tolerance.value && iteration < maxIterations) {
+    const evaluation = (isMinimization.value && f_x1 < f_x2) || (!isMinimization.value && f_x1 > f_x2)
+      ? "F(X1) mejor"
+      : "F(X2) mejor";
+
+    results.value.push({
+      iteration: iteration + 1,
+      xl: xl_k,
+      xu: xu_k,
+      x1: x1_k,
+      x2: x2_k,
+      fx1: f_x1,
+      fx2: f_x2,
+      error: error,
+      evaluation: evaluation
+    });
+
+    if ((isMinimization.value && f_x1 < f_x2) || (!isMinimization.value && f_x1 > f_x2)) {
+      xu_k = x2_k;
+      x2_k = x1_k;
+      f_x2 = f_x1;
+      d = goldenRatio * (xu_k - xl_k);
+      x1_k = xl_k + d;
+      f_x1 = f(x1_k);
+    } else {
+      xl_k = x1_k;
+      x1_k = x2_k;
+      f_x1 = f_x2;
+      d = goldenRatio * (xu_k - xl_k);
+      x2_k = xu_k - d;
+      f_x2 = f(x2_k);
+    }
+
+    error = Math.abs(xu_k - xl_k);
+    iteration++;
+  }
+
+  results.value.push({
+    iteration: iteration + 1,
+    xl: xl_k,
+    xu: xu_k,
+    x1: x1_k,
+    x2: x2_k,
+    fx1: f_x1,
+    fx2: f_x2,
+    error: error,
+    evaluation: "Final"
+  });
+};
+
+const exportResults = () => {
+  const headers = columns.map(col => col.label).join(";");
+  const content = results.value.map(row =>
+    columns.map(col => row[col.name]).join(";")
+  ).join("\n");
+  const csv = `${headers}\n${content}`;
+  exportFile("busqueda_dorada_resultados.csv", csv, "text/csv");
+};
 </script>

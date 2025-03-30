@@ -20,12 +20,13 @@
         <q-input v-model="initialX" label="Valor inicial de X" type="number" outlined class="q-mb-md" />
         <q-toggle v-model="isOptimization" label="Optimización (mínimos/máximos)" class="q-mb-md" />
         <q-btn label="Calcular" color="primary" @click="executeNewtonMethod" class="full-width" />
+        <q-btn label="Exportar Resultados" color="secondary" @click="exportResults" class="full-width q-mt-md" />
       </q-card-section>
     </q-card>
 
     <q-card v-if="iterations.length" class="shadowBox q-ma-sm q-mt-md" style="border-radius: 10px">
       <q-card-section>
-        <q-table :rows="iterations" :columns="columns" row-key="index" bordered hide-pagination dense />
+        <q-table :rows="iterations" :columns="columns" row-key="index" bordered  dense />
       </q-card-section>
     </q-card>
 
@@ -40,12 +41,13 @@
 <script setup>
 import { defineAsyncComponent, ref, computed } from "vue";
 import { evaluate, derivative } from "mathjs";
+import { exportFile } from "quasar";
 
 const MathEditor = defineAsyncComponent(() => import("../components/gestion-calculadora/MathEditor.vue"));
 const PlotlyChart = defineAsyncComponent(() => import("../components/PlotlyChart.vue"));
 
-const expresionMatematica = ref("");
-const initialX = ref(null);
+const expresionMatematica = ref("2*sin(x)-(x^2/10)");
+const initialX = ref(0);
 const isOptimization = ref(false);
 const iterations = ref([]);
 const maxIterations = 50;
@@ -69,13 +71,32 @@ const executeNewtonMethod = () => {
   iterations.value = [];
 
   for (let i = 0; i < maxIterations; i++) {
-    let fx = evaluate(expresionMatematica.value, { x });
-    let dfx = evaluate(derivative(expresionMatematica.value, "x").toString(), { x });
-    let ddfx = evaluate(derivative(derivative(expresionMatematica.value, "x"), "x").toString(), { x });
+    let fx, dfx, ddfx;
+    try {
+      fx = evaluate(expresionMatematica.value, { x });
+      dfx = evaluate(derivative(expresionMatematica.value, "x").toString(), { x });
+      ddfx = isOptimization.value
+        ? evaluate(derivative(derivative(expresionMatematica.value, "x"), "x").toString(), { x })
+        : null;
+    } catch (error) {
+      alert(`Error en iteración ${i+1}: ${error.message}`);
+      break;
+    }
 
-    iterations.value.push({ index: i + 1, x, fx, dfx, ddfx });
+    iterations.value.push({
+      index: i + 1,
+      x,
+      fx,
+      dfx,
+      ddfx: isOptimization.value ? ddfx : null
+    });
 
-    let nextX = isOptimization.value ? x - dfx / ddfx : x - fx / dfx;
+    let nextX;
+    if (isOptimization.value) {
+      nextX = x - dfx / ddfx;
+    } else {
+      nextX = x - fx / dfx;
+    }
 
     if (Math.abs(nextX - x) < tolerance) break;
     x = nextX;
@@ -83,16 +104,91 @@ const executeNewtonMethod = () => {
 };
 
 const graphData = computed(() => {
+  if (!iterations.value.length) return [];
+
+  const xValues = [];
+  const yValues = [];
+  const xRange = getFunctionRange();
+
+  for (let x = xRange.min; x <= xRange.max; x += (xRange.max - xRange.min) / 100) {
+    xValues.push(x);
+    try {
+      yValues.push(evaluate(expresionMatematica.value, { x }));
+    } catch {
+      yValues.push(null);
+    }
+  }
+
+  const tangentLines = iterations.value.slice(0, 3).map((iter, idx) => {
+    const x0 = iter.x;
+    const y0 = iter.fx;
+    const m = iter.dfx;
+    const x1 = x0 + 0.5;
+    const x2 = x0 - 0.5;
+    return {
+      x: [x2, x1],
+      y: [y0 - m * (x0 - x2), y0 + m * (x1 - x0)],
+      mode: "lines",
+      type: "scatter",
+      name: `Tangente ${idx+1}`,
+      line: { color: ["red", "green", "purple"][idx], width: 1, dash: "dash" },
+      hoverinfo: "none"
+    };
+  });
+
   return [
+    {
+      x: xValues,
+      y: yValues,
+      mode: "lines",
+      type: "scatter",
+      name: "Función",
+      line: { color: "blue", width: 2 },
+    },
+    ...tangentLines,
     {
       x: iterations.value.map((row) => row.x),
       y: iterations.value.map((row) => row.fx),
       mode: "markers+lines",
       type: "scatter",
-      name: "Newton",
-      line: { shape: "spline", smoothing: 1.3 },
-      marker: { color: "blue", size: 6 },
+      name: "Iteraciones",
+      line: { color: "orange", width: 1 },
+      marker: { color: "red", size: 8 },
     },
+    {
+      x: [iterations.value[iterations.value.length-1]?.x],
+      y: [iterations.value[iterations.value.length-1]?.fx],
+      mode: "markers",
+      type: "scatter",
+      name: "Solución",
+      marker: { color: "green", size: 12 },
+    }
   ];
 });
+
+const getFunctionRange = () => {
+  if (!iterations.value.length) return { min: -5, max: 5 };
+
+  const xs = iterations.value.map(row => row.x);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+
+  return {
+    min: minX - 2,
+    max: maxX + 2
+  };
+};
+
+const exportResults = () => {
+  const headers = ['Iteración', 'X', 'f(X)', "f'(X)", isOptimization.value ? "f''(X)" : null].filter(Boolean);
+  const content = iterations.value.map(row =>
+    [row.index, row.x, row.fx, row.dfx, isOptimization.value ? row.ddfx : null]
+      .filter(value => value !== null)
+      .join(";")
+  ).join('\n');
+
+  const csv = `${headers.join(";")}\n${content}`;
+  exportFile("metodo_newton_resultados.csv", csv, "text/csv");
+};
+
 </script>
