@@ -2,10 +2,12 @@
   <q-layout view="lHh lpR lFf" class="bg-accent">
     <q-header class="bg-accent text-white" height-hint="98">
       <q-toolbar>
+        <q-btn v-if="$q.platform.is.mobile" flat dense round icon="menu" aria-label="Menu" color="primary"
+          @click="leftDrawerOpen = !leftDrawerOpen" class="q-mr-sm" />
       </q-toolbar>
     </q-header>
 
-    <q-drawer v-model="leftDrawerOpen" show-if-above flat class="bg-accent">
+    <q-drawer v-model="leftDrawerOpen" show-if-above flat :class="$q.platform.is.mobile ? 'bg-greyultra' : 'bg-accent'">
       <q-list class="q-ma-sm bg-white" style="border-radius: 8px; height: 97%;">
         <q-toolbar>
           <q-avatar color="primary" text-color="white" icon="fas fa-gears" />
@@ -31,7 +33,10 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useQuasar } from 'quasar'
 import EssentialLink from 'components/EssentialLink.vue'
+
+const $q = useQuasar()
 
 const linksList = [
   {
@@ -65,7 +70,6 @@ const linksList = [
     link: 'busqueda-aleatoria'
   }
 ];
-
 
 const leftDrawerOpen = ref(false)
 </script>

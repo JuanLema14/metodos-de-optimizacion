@@ -23,3 +23,13 @@ $positive  : #21BA45;
 $negative  : #C10015;
 $info      : #31CCEC;
 $warning   : #F2C037;
+
+$greyultra : #948f98;
+
+.bg-greyultra {
+  background-color: $greyultra !important;
+}
+
+.text-greyultra {
+  color: $greyultra !important;
+}
