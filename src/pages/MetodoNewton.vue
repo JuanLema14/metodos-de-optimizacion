@@ -26,7 +26,7 @@
 
     <q-card v-if="iterations.length" class="shadowBox q-ma-sm q-mt-md" style="border-radius: 10px">
       <q-card-section>
-        <q-table :rows="iterations" :columns="columns" row-key="index" bordered  dense />
+        <q-table :rows="iterations" :columns="columns" row-key="index" bordered dense />
       </q-card-section>
     </q-card>
 
@@ -79,7 +79,7 @@ const executeNewtonMethod = () => {
         ? evaluate(derivative(derivative(expresionMatematica.value, "x"), "x").toString(), { x })
         : null;
     } catch (error) {
-      alert(`Error en iteración ${i+1}: ${error.message}`);
+      alert(`Error en iteración ${i + 1}: ${error.message}`);
       break;
     }
 
@@ -90,6 +90,16 @@ const executeNewtonMethod = () => {
       dfx,
       ddfx: isOptimization.value ? ddfx : null
     });
+
+    if (!isOptimization.value && Math.abs(dfx) < 1e-10) {
+      alert(`Derivada muy cercana a cero en la iteración ${i + 1}. El método puede divergir.`);
+      break;
+    }
+
+    if (isOptimization.value && Math.abs(ddfx) < 1e-10) {
+      alert(`Segunda derivada muy cercana a cero en la iteración ${i + 1}. El método puede divergir.`);
+      break;
+    }
 
     let nextX;
     if (isOptimization.value) {
@@ -130,7 +140,7 @@ const graphData = computed(() => {
       y: [y0 - m * (x0 - x2), y0 + m * (x1 - x0)],
       mode: "lines",
       type: "scatter",
-      name: `Tangente ${idx+1}`,
+      name: `Tangente ${idx + 1}`,
       line: { color: ["red", "green", "purple"][idx], width: 1, dash: "dash" },
       hoverinfo: "none"
     };
@@ -156,8 +166,8 @@ const graphData = computed(() => {
       marker: { color: "red", size: 8 },
     },
     {
-      x: [iterations.value[iterations.value.length-1]?.x],
-      y: [iterations.value[iterations.value.length-1]?.fx],
+      x: [iterations.value[iterations.value.length - 1]?.x],
+      y: [iterations.value[iterations.value.length - 1]?.fx],
       mode: "markers",
       type: "scatter",
       name: "Solución",
