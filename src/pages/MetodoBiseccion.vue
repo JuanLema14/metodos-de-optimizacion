@@ -21,21 +21,18 @@
         <q-input v-model.number="xu" label="Valor de xu" type="number" outlined class="q-mb-md" />
         <q-input v-model.number="tolerance" label="Tolerancia" type="number" outlined class="q-mb-md" />
 
+        <q-toggle v-model="isOptimization" label="Optimización (usar derivada de la función)" class="q-mb-md" />
+
+
         <q-btn label="Calcular" color="primary" @click="executeBisection" class="full-width" />
         <q-btn label="Exportar Resultados" color="secondary" @click="exportResults" class="full-width q-mt-md" />
+
       </q-card-section>
     </q-card>
 
     <q-card v-if="results.length" class="shadowBox q-ma-sm q-mt-md" style="border-radius: 10px">
       <q-card-section>
-        <q-table
-          :rows="results"
-          :columns="columns"
-          row-key="iteration"
-          bordered
-
-          dense
-        />
+        <q-table :rows="results" :columns="columns" row-key="iteration" bordered dense />
       </q-card-section>
     </q-card>
 
@@ -49,7 +46,7 @@
 
 <script setup>
 import { defineAsyncComponent, ref, computed, watch } from "vue";
-import { evaluate } from "mathjs";
+import { evaluate, derivative } from "mathjs";
 import { exportFile } from "quasar";
 
 const MathEditor = defineAsyncComponent(() => import("../components/gestion-calculadora/MathEditor.vue"));
@@ -60,6 +57,7 @@ const xl = ref(null);
 const xu = ref(null);
 const tolerance = ref(0.0001);
 const results = ref([]);
+const isOptimization = ref(false);
 
 const columns = [
   { name: "iteration", label: "Iteración", field: "iteration", align: "center" },
@@ -77,13 +75,18 @@ const f = (x) => {
   }
 
   try {
-    return evaluate(expresionMatematica.value.replace(/X/g, "x"), { x });
+    let expr = expresionMatematica.value;
+
+    if (isOptimization.value) {
+      expr = derivative(expr, 'x').toString();
+    }
+
+    return evaluate(expr.replace(/X/g, "x"), { x });
   } catch (error) {
     console.error("Error al evaluar la función:", error);
     return NaN;
   }
 };
-
 const findInterval = (range = 50, step = 0.5, maxIterations = 200) => {
   let start = -range, end = range;
   let prevX = start, prevY = f(prevX);
