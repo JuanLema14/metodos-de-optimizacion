@@ -30,9 +30,14 @@
     <q-card v-if="results.length" class="shadowBox q-ma-sm q-mt-md" style="border-radius: 10px">
       <q-card-section>
         <div class="text-h6">Mejor solución encontrada:</div>
-        <div class="text-subtitle1">x = {{ bestSolution.x.toFixed(6) }}, f(x) = {{ bestSolution.fx.toFixed(6) }}</div>
+        <div class="text-subtitle1">
+          x = {{ bestSolution.x?.toFixed(6) }},
+          <span v-if="bestSolution.y !== null">y = {{ bestSolution.y?.toFixed(6) }},</span>
+          f(x{{ bestSolution.y !== null ? ', y' : '' }}) = {{ bestSolution.fx?.toFixed(6) }}
+        </div>
       </q-card-section>
     </q-card>
+
 
     <q-card v-if="results.length" class="shadowBox q-ma-sm q-mt-md" style="border-radius: 10px">
       <q-card-section>
@@ -57,24 +62,28 @@ const MathEditor = defineAsyncComponent(() => import('../components/gestion-calc
 const PlotlyChart = defineAsyncComponent(() => import('../components/PlotlyChart.vue'));
 
 const expresionMatematica = ref('x^2 - 4*cos(x)');
-const lowerBound = ref(-5);
-const upperBound = ref(5);
-const sampleSize = ref(50);
-const isMinimization = ref(true);
+const lowerBound = ref(-2);
+const upperBound = ref(2);
+const sampleSize = ref(100);
+const isMinimization = ref(false);
 const results = ref([]);
-const bestSolution = ref({ x: null, fx: null });
+const bestSolution = ref({ x: null, y: null, fx: null });
 
 const columns = [
   { name: 'index', label: 'Iteración', field: 'index', align: 'center' },
   { name: 'x', label: 'x', field: 'x', align: 'center' },
-  { name: 'fx', label: 'f(x)', field: 'fx', align: 'center' },
+  { name: 'y', label: 'y', field: 'y', align: 'center' },
+  { name: 'fx', label: 'f(x, y)', field: 'fx', align: 'center' },
   { name: 'isBest', label: '¿Mejor?', field: 'isBest', align: 'center' }
 ];
 
-const f = (x) => {
+const f = (x, y = 0) => {
   if (!expresionMatematica.value.trim()) return NaN;
   try {
-    return evaluate(expresionMatematica.value, { x });
+    let variables = {};
+    if (expresionMatematica.value.includes("x")) variables.x = x;
+    if (expresionMatematica.value.includes("y")) variables.y = y;
+    return evaluate(expresionMatematica.value, variables);
   } catch (error) {
     console.error("Error al evaluar la función:", error);
     return NaN;
@@ -92,26 +101,27 @@ const executeRandomSearch = () => {
     return;
   }
 
+  const usesY = expresionMatematica.value.includes("y");
   results.value = [];
-  let currentBest = { x: null, fx: isMinimization.value ? Infinity : -Infinity };
+  let currentBest = { x: null, y: null, fx: isMinimization.value ? Infinity : -Infinity };
 
   for (let i = 0; i < sampleSize.value; i++) {
     const x = lowerBound.value + Math.random() * (upperBound.value - lowerBound.value);
-    const fx = f(x);
+    const y = usesY ? lowerBound.value + Math.random() * (upperBound.value - lowerBound.value) : 0;
+    const fx = f(x, y);
 
     if (isNaN(fx)) continue;
 
-    const isBetter = isMinimization.value
-      ? fx < currentBest.fx
-      : fx > currentBest.fx;
+    const isBetter = isMinimization.value ? fx < currentBest.fx : fx > currentBest.fx;
 
     if (isBetter) {
-      currentBest = { x, fx };
+      currentBest = { x, y, fx };
     }
 
     results.value.push({
       index: i + 1,
       x,
+      y: usesY ? y : null,
       fx,
       isBest: isBetter ? '⭐' : ''
     });
@@ -123,54 +133,73 @@ const executeRandomSearch = () => {
 const graphData = computed(() => {
   if (!results.value.length) return [];
 
-  const xValues = [];
-  const yValues = [];
-  const step = (upperBound.value - lowerBound.value) / 100;
+  const usesY = expresionMatematica.value.includes("y");
 
-  for (let x = lowerBound.value; x <= upperBound.value; x += step) {
-    xValues.push(x);
-    try {
+  if (!usesY) {
+    const xValues = [];
+    const yValues = [];
+    const step = (upperBound.value - lowerBound.value) / 100;
+
+    for (let x = lowerBound.value; x <= upperBound.value; x += step) {
+      xValues.push(x);
       yValues.push(f(x));
-    } catch {
-      yValues.push(null);
     }
+
+    return [
+      {
+        x: xValues,
+        y: yValues,
+        mode: "lines",
+        type: "scatter",
+        name: "Función",
+        line: { color: "blue", width: 2 },
+      },
+      {
+        x: results.value.map(r => r.x),
+        y: results.value.map(r => r.fx),
+        mode: "markers",
+        type: "scatter",
+        name: "Puntos evaluados",
+        marker: { color: "gray", size: 8 }
+      },
+      {
+        x: [bestSolution.value.x],
+        y: [bestSolution.value.fx],
+        mode: "markers",
+        type: "scatter",
+        name: "Mejor solución",
+        marker: { color: "green", size: 12 }
+      }
+    ];
   }
 
   return [
     {
-      x: xValues,
-      y: yValues,
-      mode: "lines",
-      type: "scatter",
-      name: "Función",
-      line: { color: "blue", width: 2 },
-    },
-    {
-      x: results.value.map(row => row.x),
-      y: results.value.map(row => row.fx),
+      x: results.value.map(r => r.x),
+      y: results.value.map(r => r.y),
+      z: results.value.map(r => r.fx),
       mode: "markers",
-      type: "scatter",
+      type: "scatter3d",
       name: "Puntos evaluados",
-      marker: {
-        color: results.value.map(row => row.isBest ? 'red' : 'gray'),
-        size: 8
-      },
+      marker: { size: 4, color: "gray" }
     },
     {
       x: [bestSolution.value.x],
-      y: [bestSolution.value.fx],
+      y: [bestSolution.value.y],
+      z: [bestSolution.value.fx],
       mode: "markers",
-      type: "scatter",
+      type: "scatter3d",
       name: "Mejor solución",
-      marker: { color: "green", size: 12 },
+      marker: { size: 8, color: "green" }
     }
   ];
 });
 
+
 const exportResults = () => {
-  const headers = ['Iteración', 'x', 'f(x)', '¿Mejor?'];
+  const headers = ['Iteración', 'x', 'y', 'f(x,y)', '¿Mejor?'];
   const content = results.value.map(row =>
-    [row.index, row.x, row.fx, row.isBest].join(";")
+    [row.index, row.x, row.y ?? '', row.fx, row.isBest].join(";")
   ).join('\n');
 
   const csv = `${headers.join(";")}\n${content}`;
